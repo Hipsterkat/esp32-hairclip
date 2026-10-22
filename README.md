@@ -4,10 +4,11 @@ A wearable message display. An ESP32-C3 SuperMini Plus drives a 0.91″ 128×32
 OLED on a hairclip, and you change the message from your phone over the clip's
 own Wi-Fi: no app, no account, no internet.
 
-> **Status: runs on a real ESP32-C3; the OLED, battery and charging are NOT
-> HARDWARE TESTED.** On USB power, with no screen fitted yet, the firmware
-> boots and serves the Wi-Fi page. Saving from a phone, persistence across
-> restarts and updates, the BOOT button and the 3-minute auto-off all work.
+> **Status: runs on a real ESP32-C3 with the OLED; the battery and charging
+> are NOT HARDWARE TESTED.** On USB power, the display (all fonts, Romanian
+> accents, two lines, scrolling, rotation, invert, brightness), the Wi-Fi
+> page, saving from a phone, persistence, the BOOT button and the 3-minute
+> auto-off all work.
 > Read **[HARDWARE.md](HARDWARE.md)** before connecting a battery, and work
 > through the **[hardware test checklist](docs/HARDWARE_TEST_CHECKLIST.md)**
 > before wearing it.
@@ -418,8 +419,9 @@ is validated on the device. Details and examples are in
 | ESP32 plugin review: C3 strapping/flash/USB pins, I²C pull-ups, 3.3 V limit, watchdogs, RAII | ✅ pin map valid; review fixes applied |
 | Control page against a mock API in a desktop browser | ✅ checked manually (mock, not the device) |
 | Flashing to an ESP32-C3 (rev v0.4, 4 MB) | ✅ done 2026-10-22, hash verified |
-| On the board, USB power, no screen: boot, Wi-Fi AP, phone saving a message, persistence across restart and update, BOOT on/off, auto-off | ✅ tested 2026-10-22 ([log](docs/HARDWARE_TEST_CHECKLIST.md#test-log)) |
-| OLED output, 3V3 under load, battery, charging, enclosure | ❌ **NOT HARDWARE TESTED** ([checklist](docs/HARDWARE_TEST_CHECKLIST.md)) |
+| On the board, USB power: boot, Wi-Fi AP, phone saving a message, persistence, BOOT on/off and toast, auto-off | ✅ tested 2026-10-22/23 ([log](docs/HARDWARE_TEST_CHECKLIST.md#test-log)) |
+| OLED: detection at 0x3C, fonts and Romanian accents, two lines, scrolling, rotation, invert, brightness, Wi-Fi icon | ✅ tested 2026-10-23 |
+| 3V3 under load, battery, charging, enclosure | ❌ **NOT HARDWARE TESTED** ([checklist](docs/HARDWARE_TEST_CHECKLIST.md)) |
 
 ```bash
 scripts/test.sh
