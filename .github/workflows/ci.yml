@@ -1,0 +1,72 @@
+# Compiles the firmware and runs the software tests. No hardware is involved:
+# a green run says nothing about the physical clip (see
+# docs/HARDWARE_TEST_CHECKLIST.md).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ARDUINO_CLI_VERSION: "1.5.1"
+  ESP32_CORE_VERSION: "3.3.12"
+  U8G2_VERSION: "2.36.19"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: arduino/setup-arduino-cli@v2
+        with:
+          version: ${{ env.ARDUINO_CLI_VERSION }}
+
+      - name: Cache Arduino core and libraries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.arduino15
+            ~/Arduino/libraries
+          key: arduino-${{ env.ARDUINO_CLI_VERSION }}-esp32-${{ env.ESP32_CORE_VERSION }}-u8g2-${{ env.U8G2_VERSION }}
+
+      - name: Install ESP32 core and U8g2 (pinned)
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install "esp32:esp32@${ESP32_CORE_VERSION}"
+          arduino-cli lib install "U8g2@${U8G2_VERSION}"
+
+      - name: Unit, static and parity tests
+        run: scripts/test.sh
+
+      - name: Compile firmware (ESP32-C3)
+        run: scripts/build.sh
+
+      - name: Upload firmware images
+        uses: actions/upload-artifact@v4
+        with:
+          name: hairclip-firmware-${{ github.sha }}
+          path: |
+            build/firmware/*.bin
+            build/firmware/SHA256SUMS
+            build/firmware/FLASH_LAYOUT.txt
+          if-no-files-found: error

@@ -1,0 +1,36 @@
+# Build output and compiler caches
+build/
+*.o
+*.a
+*.elf
+*.map
+*.bin
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local configuration and secrets (never commit Wi-Fi credentials or tokens)
+hairclip/secrets.h
+.env
+.env.*
+*.pem
+*.key
+sketch.yaml
+arduino-cli.yaml
+.arduino15/
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+._*
+
+# Local Claude Code preview configuration
+.claude/
