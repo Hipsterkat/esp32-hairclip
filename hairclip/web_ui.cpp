@@ -192,6 +192,7 @@ void handleStatus() {
       .endObject();
   j.beginObject("oled")
       .boolean("detected", d.detected)
+      .boolean("busIdleHigh", d.busIdleHigh)
       .str("address", addr)
       .unum("lines", d.lines)
       .boolean("scrolling", d.scrolling)

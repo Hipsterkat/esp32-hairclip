@@ -208,8 +208,34 @@ mode by design; that is the recovery path for flashing. The firmware ignores a
 button that is already held when it starts, and acts only on a press that
 begins after boot and lasts at least 1.5 s.
 
-A pin-map check with an ESP32 pin validator reported no errors and one
-expected warning: GPIO9 must be HIGH at reset for a normal boot.
+**I²C pull-ups and the 3.3 V limit.** SDA and SCL need pull-up resistors.
+0.91″ modules normally carry them (4.7–10 kΩ), connected to the module's own
+VCC; the ESP32-C3's internal pulls (about 45 kΩ) are too weak on their own.
+Two rules follow:
+
+* The module's VCC must be the **3V3** pin. On the 5V/battery pad its
+  pull-ups would put up to 4.2 V on GPIO5/6, above the ESP32-C3's 3.6 V
+  maximum, which can damage the chip.
+* At 400 kHz the pull-ups should be about 4.7 kΩ. With 10 kΩ, long wires or
+  flaky text, set `OLED_I2C_CLOCK_HZ` to 100000, or add 4.7 kΩ resistors from
+  SDA and SCL to 3V3.
+
+At boot the firmware reads both lines before starting I²C. If they do not idle
+HIGH, `status` reports "lines idled LOW (check OLED power and pull-ups)" and
+the API reports `busIdleHigh: false`.
+
+**Watchdogs.** The interrupt watchdog (300 ms, core default) catches stuck
+interrupts. The task watchdog, set to 30 s, watches both the Arduino loop and
+the display task, and resets the chip if either hangs. That limit sits well
+above the longest legitimate block (a slow HTTP client). After such a reset,
+the page shows *Last reset: task-watchdog*. Watchdogs recover from software
+hangs only; they do nothing for power problems.
+
+An ESP32 plugin review checked this firmware against the ESP32-C3 rules
+(strapping pins 2/8/9, flash pins 12–17, USB pins 18/19, I²C pull-ups, 3.3 V
+GPIO limit, watchdogs, memory handling). Its pin-map validator reported no
+errors and one expected warning: GPIO9 must be HIGH at reset for a normal
+boot.
 
 ## 11. What the firmware does not do
 

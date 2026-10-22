@@ -43,8 +43,8 @@ Not counted as activity.
   "brownouts": 0,
   "wifi": {"state": "on", "ssid": "Hairclip", "ip": "192.168.4.1", "clients": 1,
            "idleTimeoutS": 180, "autoOffInS": 151, "stopInS": 0},
-  "oled": {"detected": true, "address": "0x3C", "lines": 1, "scrolling": false,
-           "textWidth": 68, "frames": 3},
+  "oled": {"detected": true, "busIdleHigh": true, "address": "0x3C", "lines": 1,
+           "scrolling": false, "textWidth": 68, "frames": 3},
   "system": {"chip": "ESP32-C3", "revision": 4, "cpuMHz": 80, "freeHeap": 181000,
              "minFreeHeap": 170000, "displayStackFree": 3000}
 }
@@ -57,6 +57,10 @@ Not counted as activity.
 * `brownouts` counts brownout resets since the last factory reset (capped at
   255).
 * `oled.detected` reports whether an SSD1306 answered on I²C at boot.
+  `oled.busIdleHigh` is false if SDA or SCL read LOW before I²C started,
+  which means no pull-ups or no OLED power.
+* `task-watchdog` as `resetReason` means the firmware hung for 30 s and the
+  watchdog restarted it.
 
 The values above are illustrative.
 

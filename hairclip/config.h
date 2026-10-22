@@ -27,12 +27,17 @@ static constexpr uint8_t PIN_BOOT_BUTTON = 9;  // onboard BOOT button, active LO
 // ---------------------------------------------------------------------------
 static constexpr uint8_t OLED_I2C_ADDRESS = 0x3C;      // 7-bit address from the spec
 static constexpr uint8_t OLED_I2C_ADDRESS_ALT = 0x3D;  // some modules ship strapped to 0x3D
+// 400 kHz relies on the module's own pull-up resistors (typically 4.7 kΩ to
+// its VCC, which must be the 3V3 pin). If the bus is unreliable, try 100000.
 static constexpr uint32_t OLED_I2C_CLOCK_HZ = 400000;
 static constexpr uint16_t OLED_WIDTH = 128;
 static constexpr uint16_t OLED_HEIGHT = 32;
 // Upper bound on the frame rate while scrolling (a full 128x32 frame takes
 // roughly 15 ms on a 400 kHz bus).
 static constexpr uint32_t DISPLAY_MIN_FRAME_MS = 25;
+// The render task wakes at least this often, even with nothing to draw, so it
+// can feed the task watchdog.
+static constexpr uint32_t DISPLAY_MAX_SLEEP_MS = 5000;
 // Text shown when nothing has been saved yet.
 #define HAIRCLIP_DEFAULT_MESSAGE "Hello!"
 
@@ -83,6 +88,11 @@ static constexpr uint32_t BUTTON_LONG_PRESS_MS = 1500;
 // Power. Wi-Fi needs at least 80 MHz on the ESP32-C3.
 // ---------------------------------------------------------------------------
 static constexpr uint32_t CPU_FREQ_MHZ = 80;
+
+// Task watchdog: resets the chip if the main loop or the display task stops
+// running for this long. That catches a real hang; a slow HTTP client (the
+// web server waits at most a few seconds per step) stays well below it.
+static constexpr uint32_t WATCHDOG_TIMEOUT_MS = 30000;
 
 // ---------------------------------------------------------------------------
 // Text limits. Characters are Unicode code points after normalization.

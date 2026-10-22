@@ -124,8 +124,8 @@ class Handler(BaseHTTPRequestHandler):
                                  "wifi": {"state": d.wifi_state(), "ssid": "Hairclip", "ip": "192.168.4.1", "clients": 1,
                                           "idleTimeoutS": IDLE_S, "autoOffInS": left,
                                           "stopInS": max(0, int((d.stop_at or 0) - time.time()))},
-                                 "oled": {"detected": True, "address": "0x3C", "lines": 1, "scrolling": False,
-                                          "textWidth": 0, "frames": 0},
+                                 "oled": {"detected": True, "busIdleHigh": True, "address": "0x3C", "lines": 1,
+                                          "scrolling": False, "textWidth": 0, "frames": 0},
                                  "system": {"chip": "mock", "revision": 0, "cpuMHz": 80, "freeHeap": 0,
                                             "minFreeHeap": 0, "displayStackFree": 0}})
         elif path == "/api/settings":

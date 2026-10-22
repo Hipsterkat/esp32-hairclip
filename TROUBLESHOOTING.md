@@ -20,12 +20,16 @@ current settings. The Wi-Fi password is never printed.
 2. **Wiring.** SDA → GPIO5 and SCL → GPIO6 (not GPIO8/9, the Arduino
    defaults). Check continuity end to end, and for solder bridges between
    neighbouring pads.
-3. **Does it answer?** Run `status`. The `i2c` line lists the addresses that
-   answered:
+3. **Does it answer?** Run `status`. The `i2c` line says how the bus lines
+   idled at boot and lists the addresses that answered:
+   * `lines idled LOW`: nothing pulls SDA/SCL up. The OLED has no power, or
+     the module lacks pull-up resistors. Add 4.7 kΩ from SDA and SCL to 3V3.
    * `0x3C` (or `0x3D`): the display is on the bus. If it still shows nothing,
      check `brightness` (0% is very dim) and `invert`, and press RESET.
-   * `none`: no device answered. That points to wiring, power, swapped
-     SDA/SCL, or a module without pull-up resistors (most have them).
+   * `none`: no device answered. That points to wiring, power or swapped
+     SDA/SCL.
+   * Garbled or intermittent output: weak pull-ups or long wires. Set
+     `OLED_I2C_CLOCK_HZ` to 100000 in `hairclip/config.h` and reflash.
 4. **Wrong controller?** Some cheap "SSD1306" modules use an SH1106 or a
    different resolution. A picture shifted by a couple of pixels, or garbage in
    one half, suggests that. This firmware supports the SSD1306 128×32 only.

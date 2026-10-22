@@ -52,7 +52,13 @@ so the logic stays testable.
 
 `tests/python/test_static.py` enforces some of these rules: no long `delay()`,
 no `while (!Serial)`, GPIO9 only read, explicit I²C pins, no Arduino headers
-in pure modules, no printed password, no hard-coded serial ports.
+in pure modules, no printed password, no hard-coded serial ports, both tasks
+on the task watchdog, no unbounded waits in the render task, and no manual
+`delete`/`malloc` (use static buffers or `std::unique_ptr`).
+
+The task watchdog (`WATCHDOG_TIMEOUT_MS`, 30 s) watches the Arduino loop and
+the display task. Code on either task must never block for that long; the
+render task wakes at least every `DISPLAY_MAX_SLEEP_MS` to feed it.
 
 ## Generated headers
 

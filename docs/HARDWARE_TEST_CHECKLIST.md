@@ -18,6 +18,8 @@ USB data cable, and a phone.
 | ☐ | Board identity | Read the markings | ESP32-C3 SuperMini Plus; 5V/3V3/G/5/6 labels present | NOT HARDWARE TESTED |
 | ☐ | Regulator and USB path | Identify the LDO marking; diode test from USB VBUS to the 5V pad | Regulator type recorded; blocking diode present or absent recorded | NOT HARDWARE TESTED |
 | ☐ | OLED pin order | Read the module's silkscreen | VCC/GND/SCL/SDA order recorded | NOT HARDWARE TESTED |
+| ☐ | OLED pull-ups | Resistance SDA→VCC and SCL→VCC on the unpowered module | About 2–10 kΩ each (if missing or higher, add 4.7 kΩ to 3V3 or use 100 kHz) | NOT HARDWARE TESTED |
+| ☐ | OLED VCC from 3V3 | Continuity from OLED VCC to the SuperMini 3V3 pin, not 5V | Connected to 3V3 only | NOT HARDWARE TESTED |
 | ☐ | Cell limits | Cell datasheet | Max charge current, cut-off and temperature range recorded | NOT HARDWARE TESTED |
 | ☐ | R_PROG | Measure the resistance between TP4056 pin 2 and GND, all power removed | Matches the value chosen for the cell (10 kΩ ≈ 130 mA, 12 kΩ ≈ 100 mA) | NOT HARDWARE TESTED |
 | ☐ | Switch | Continuity on the common pin in both positions | ON connects OUT+ to the 5V wire; OFF opens it | NOT HARDWARE TESTED |
@@ -37,7 +39,8 @@ USB data cable, and a phone.
 
 | ✓ | Check | How | Pass condition | Result |
 |---|---|---|---|---|
-| ☐ | SSD1306 detected at 0x3C | `status` in the serial console | `i2c … devices: 0x3C`; `oled detected at 0x3C` | NOT HARDWARE TESTED |
+| ☐ | SSD1306 detected at 0x3C | `status` in the serial console | `i2c … lines idled HIGH … devices: 0x3C`; `oled detected at 0x3C` | NOT HARDWARE TESTED |
+| ☐ | Watchdog stays quiet | Use the clip normally for 30 min, then check *Last reset* | No `task-watchdog` or `interrupt-watchdog` resets | NOT HARDWARE TESTED |
 | ☐ | Correct GPIO mapping | Same line | `SDA=GPIO5 SCL=GPIO6`; the display works with this wiring | NOT HARDWARE TESTED |
 | ☐ | Display initialization | Look at the panel | "Hello!" centered, crisp, not shifted or mirrored; Wi-Fi icon top-right | NOT HARDWARE TESTED |
 | ☐ | Fonts and diacritics | Save `Ăă Ââ Îî Șș Țț` in each font size | Every accent and comma visible | NOT HARDWARE TESTED |

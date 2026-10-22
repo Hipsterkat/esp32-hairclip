@@ -5,6 +5,7 @@
 #include "text.h"
 
 #ifdef ARDUINO
+#include <memory>
 #include <new>
 #endif
 
@@ -192,15 +193,11 @@ bool NvsStore::getString(const char* key, char* buf, size_t cap, size_t* storedL
   if (need <= cap) return prefs_.getString(key, buf, cap) > 0;
   // Longer than this firmware allows (corruption or a newer firmware):
   // read it whole, then hand back the first cap-1 bytes for validation.
-  char* tmp = new (std::nothrow) char[need];
-  if (tmp == nullptr) return false;
-  const bool ok = prefs_.getString(key, tmp, need) > 0;
-  if (ok) {
-    memcpy(buf, tmp, cap - 1);
-    buf[cap - 1] = '\0';
-  }
-  delete[] tmp;
-  return ok;
+  std::unique_ptr<char[]> tmp(new (std::nothrow) char[need]);
+  if (!tmp || prefs_.getString(key, tmp.get(), need) == 0) return false;
+  memcpy(buf, tmp.get(), cap - 1);
+  buf[cap - 1] = '\0';
+  return true;
 }
 
 bool NvsStore::putU8(const char* key, uint8_t value) {

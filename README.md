@@ -62,6 +62,7 @@ browser approximation.*
 * Settings live in flash (NVS) and are written only when they change.
 * The display animates in its own task, so it keeps moving while the web
   server works.
+* Watchdogs restart the chip if the main loop or the display task ever hangs.
 * A serial console provides diagnostics: `status`, `wifi on`, `wifi off`,
   `factory-reset`.
 
@@ -393,9 +394,11 @@ is validated on the device. Details and examples are in
 
 | Check | Result |
 |---|---|
-| Firmware compiles (arduino-cli 1.5.1, esp32 core 3.3.12, U8g2 2.36.19) | ✅ passed, 1,123,505 bytes (85% of the app partition), no warnings |
+| Firmware compiles (arduino-cli 1.5.1, esp32 core 3.3.12, U8g2 2.36.19) | ✅ passed, 1,125,057 bytes (85% of the app partition), no warnings |
+| GitHub Actions CI (tests + ESP32-C3 compile on Linux, no hardware) | ✅ passing |
 | Host unit tests (69): UTF-8, normalization, escaping, settings limits, NVS corruption and failures, layout/scrolling, button, Wi-Fi policy, JSON | ✅ passed with AddressSanitizer and UBSan |
-| Python/JS tests (33): font coverage, generated assets and CSP, static checks, C++ ↔ browser-preview parity | ✅ passed |
+| Python/JS tests (36): font coverage, generated assets and CSP, static checks (blocking calls, pins, watchdog, memory), C++ ↔ browser-preview parity | ✅ passed |
+| ESP32 plugin review: C3 strapping/flash/USB pins, I²C pull-ups, 3.3 V limit, watchdogs, RAII | ✅ pin map valid; review fixes applied |
 | Control page against a mock API in a desktop browser | ✅ checked manually (mock, not the device) |
 | Flashing to an ESP32-C3 | ❌ **not done** (no board was connected) |
 | Display, Wi-Fi, button, persistence, battery, charging | ❌ **NOT HARDWARE TESTED** ([checklist](docs/HARDWARE_TEST_CHECKLIST.md)) |

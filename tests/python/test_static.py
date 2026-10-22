@@ -57,6 +57,29 @@ class BlockingCalls(unittest.TestCase):
         self.assertNotIn("Preferences", strip_comments(portable))
 
 
+class Reliability(unittest.TestCase):
+    def test_task_watchdog_watches_loop_and_display(self):
+        ino = firmware_code()["hairclip.ino"]
+        self.assertIn("esp_task_wdt_reconfigure(&cfg)", ino)
+        self.assertIn("enableLoopWDT()", ino)
+        display = firmware_code()["display.cpp"]
+        self.assertIn("esp_task_wdt_add(nullptr)", display)
+        self.assertIn("esp_task_wdt_reset()", display)
+        # The render task must wake up to feed the watchdog: no unbounded wait.
+        self.assertNotRegex(display, r"ulTaskNotifyTake\([^;]*portMAX_DELAY")
+
+    def test_memory_is_raii_managed(self):
+        for name, code in firmware_code().items():
+            code = re.sub(r'"(?:[^"\\\n]|\\.)*"', '""', code)  # ignore text inside string literals
+            self.assertNotRegex(code, r"\bdelete\b", f"{name}: use static buffers or std::unique_ptr")
+            self.assertNotRegex(code, r"\b(malloc|calloc|realloc|free)\s*\(", name)
+
+    def test_i2c_idle_level_is_checked_before_wire_starts(self):
+        display = strip_comments(source("display.cpp"))
+        self.assertLess(display.index("g_busIdleHigh = digitalRead(PIN_OLED_SDA)"),
+                        display.index("Wire.begin(PIN_OLED_SDA"))
+
+
 class PinSafety(unittest.TestCase):
     def test_i2c_uses_explicit_oled_pins(self):
         display = strip_comments(source("display.cpp"))

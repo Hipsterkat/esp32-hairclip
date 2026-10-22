@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
 #include <Wire.h>
+#include <esp_task_wdt.h>
 #include <string.h>
 
 #include "config.h"
@@ -47,6 +48,7 @@ TaskHandle_t g_task = nullptr;
 
 // Written once in begin(), read-only afterwards.
 bool g_detected = false;
+bool g_busIdleHigh = false;
 uint8_t g_address = OLED_I2C_ADDRESS;
 uint8_t g_found[16];
 size_t g_foundCount = 0;
@@ -207,8 +209,10 @@ void renderTask(void*) {
   bool lastToast = false, lastIcon = false, sleeping = false;
   uint32_t lastOffset = UINT32_MAX;
   uint32_t frames = 0;
+  esp_task_wdt_add(nullptr);  // the task watchdog resets the chip if this loop hangs
 
   for (;;) {
+    esp_task_wdt_reset();
     bool full = false;
     lock();
     const bool changed = g_model.version != seen;
@@ -271,11 +275,12 @@ void renderTask(void*) {
     g_info.frames = frames;
     unlock();
 
-    // Sleep until the picture would change, or until new content arrives.
-    uint32_t wait = UINT32_MAX;
+    // Sleep until the picture would change, new content arrives, or it is
+    // time to feed the watchdog.
+    uint32_t wait = DISPLAY_MAX_SLEEP_MS;
     if (scrolling != nullptr) {
-      wait = layout::msUntilNextStep(*scrolling, sc.layout, elapsed);
-      if (wait < DISPLAY_MIN_FRAME_MS) wait = DISPLAY_MIN_FRAME_MS;
+      const uint32_t step = layout::msUntilNextStep(*scrolling, sc.layout, elapsed);
+      if (step < wait) wait = step < DISPLAY_MIN_FRAME_MS ? DISPLAY_MIN_FRAME_MS : step;
     }
     if (toastOn) {
       const uint32_t left = sc.model.toastMs - (now - sc.model.toastStartMs);
@@ -285,7 +290,7 @@ void renderTask(void*) {
       const uint32_t left = kBlinkMs - now % kBlinkMs;
       if (left < wait) wait = left;
     }
-    ulTaskNotifyTake(pdTRUE, wait == UINT32_MAX ? portMAX_DELAY : pdMS_TO_TICKS(wait));
+    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait));
   }
 }
 
@@ -298,6 +303,12 @@ bool ack(uint8_t address) {
 
 bool begin(const char* message, const DisplaySettings& ds) {
   g_lock = xSemaphoreCreateMutex();
+
+  // An idle I2C bus is HIGH through the module's pull-up resistors (internal
+  // pulls are off in INPUT mode). LOW means no pull-ups or no OLED power.
+  pinMode(PIN_OLED_SDA, INPUT);
+  pinMode(PIN_OLED_SCL, INPUT);
+  g_busIdleHigh = digitalRead(PIN_OLED_SDA) == HIGH && digitalRead(PIN_OLED_SCL) == HIGH;
 
   Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL, OLED_I2C_CLOCK_HZ);
   for (uint8_t a = 0x08; a < 0x78; ++a) {
@@ -322,6 +333,7 @@ bool begin(const char* message, const DisplaySettings& ds) {
   g_model.wifi = ApState::Off;
   g_model.version = 1;
   g_info.detected = g_detected;
+  g_info.busIdleHigh = g_busIdleHigh;
   g_info.address = g_address;
   g_info.busDevices = static_cast<uint8_t>(g_foundCount);
 

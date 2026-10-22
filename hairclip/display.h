@@ -13,6 +13,7 @@ namespace display {
 
 struct Info {
   bool detected;       // an SSD1306 acknowledged on the bus at boot
+  bool busIdleHigh;    // SDA and SCL read HIGH before I2C started: pull-ups and OLED power present
   uint8_t address;     // 7-bit I2C address in use
   uint8_t busDevices;  // devices that acknowledged during the boot scan
   uint8_t lines;       // lines currently shown (1 or 2)

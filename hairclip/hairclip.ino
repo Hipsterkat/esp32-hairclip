@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 #include <esp_system.h>
+#include <esp_task_wdt.h>
 #include <esp_timer.h>
 
 #include <atomic>
@@ -33,6 +34,17 @@ static esp_timer_handle_t g_buttonTimer = nullptr;
 
 static void sampleButton(void*) {
   if (g_button.update(digitalRead(PIN_BOOT_BUTTON) == LOW, millis())) g_longPress = true;
+}
+
+// The core starts the task watchdog with a 5 s timeout and nothing
+// subscribed. Lengthen it, then watch the Arduino loop task (fed by the core
+// after every loop()); the display task subscribes itself.
+static void startWatchdog() {
+  esp_task_wdt_config_t cfg = {};
+  cfg.timeout_ms = WATCHDOG_TIMEOUT_MS;
+  cfg.idle_core_mask = 0;
+  cfg.trigger_panic = true;
+  if (esp_task_wdt_reconfigure(&cfg) == ESP_OK) enableLoopWDT();
 }
 
 static const char* resetReasonName(esp_reset_reason_t r) {
@@ -78,7 +90,8 @@ static void printStatus() {
   Serial.printf("uptime     %lu s, heap %lu free (min %lu)\n",
                 static_cast<unsigned long>(esp_timer_get_time() / 1000000),
                 static_cast<unsigned long>(ESP.getFreeHeap()), static_cast<unsigned long>(ESP.getMinFreeHeap()));
-  Serial.printf("i2c        SDA=GPIO%u SCL=GPIO%u, devices:", PIN_OLED_SDA, PIN_OLED_SCL);
+  Serial.printf("i2c        SDA=GPIO%u SCL=GPIO%u, lines idled %s at boot, devices:", PIN_OLED_SDA, PIN_OLED_SCL,
+                d.busIdleHigh ? "HIGH (pull-ups ok)" : "LOW (check OLED power and pull-ups)");
   for (size_t i = 0; i < n; ++i) Serial.printf(" 0x%02X", found[i]);
   Serial.printf("%s\n", n == 0 ? " none" : "");
   Serial.printf("oled       %s at 0x%02X, %u line(s), %s, %lu frames\n", d.detected ? "detected" : "NOT DETECTED",
@@ -145,6 +158,7 @@ void setup() {
 #if ARDUINO_USB_MODE && ARDUINO_USB_CDC_ON_BOOT
   Serial.setTxTimeoutMs(0);  // never stall when no computer is listening
 #endif
+  startWatchdog();
   pinMode(PIN_BOOT_BUTTON, INPUT_PULLUP);
 
   const esp_reset_reason_t reason = esp_reset_reason();
