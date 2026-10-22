@@ -304,10 +304,17 @@ bool ack(uint8_t address) {
 bool begin(const char* message, const DisplaySettings& ds) {
   g_lock = xSemaphoreCreateMutex();
 
-  // An idle I2C bus is HIGH through the module's pull-up resistors (internal
-  // pulls are off in INPUT mode). LOW means no pull-ups or no OLED power.
+  // An idle I2C bus is HIGH through the module's pull-up resistors. A line
+  // with nothing attached floats and can keep a HIGH charge across a reset,
+  // so first drain it with the internal pull-down, then release it and read:
+  // a real pull-up brings it straight back HIGH, a floating line stays LOW.
+  // (One-time 0.2 ms at boot.)
+  pinMode(PIN_OLED_SDA, INPUT_PULLDOWN);
+  pinMode(PIN_OLED_SCL, INPUT_PULLDOWN);
+  delayMicroseconds(100);
   pinMode(PIN_OLED_SDA, INPUT);
   pinMode(PIN_OLED_SCL, INPUT);
+  delayMicroseconds(100);
   g_busIdleHigh = digitalRead(PIN_OLED_SDA) == HIGH && digitalRead(PIN_OLED_SCL) == HIGH;
 
   Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL, OLED_I2C_CLOCK_HZ);

@@ -39,7 +39,13 @@ class BlockingCalls(unittest.TestCase):
                 self.assertRegex(arg, r"^wifi::state\(\) == ApState::Off \? \d+ : \d+$", arg)
                 for n in map(int, re.findall(r"\d+", arg)):
                     self.assertLessEqual(n, 20)
-            self.assertNotIn("delayMicroseconds", code, name)
+            # Only the one-time I2C line check at boot may busy-wait, briefly.
+            waits = re.findall(r"delayMicroseconds\s*\((\d+)\)", code)
+            if name == "display.cpp":
+                self.assertLessEqual(len(waits), 2)
+                self.assertTrue(all(int(us) <= 1000 for us in waits), waits)
+            else:
+                self.assertEqual(waits, [], name)
 
     def test_render_task_sleeps_on_notifications(self):
         code = strip_comments(source("display.cpp"))

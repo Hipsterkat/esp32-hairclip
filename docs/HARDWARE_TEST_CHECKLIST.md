@@ -1,9 +1,10 @@
 # Physical hardware test checklist
 
-**Every item below is NOT HARDWARE TESTED.** The firmware has been compiled and
-unit-tested on a computer only. Record your own results in the *Result*
-column; a ticked box means a real measurement or observation, not an
-expectation. Stop at the first failure.
+Items marked **PASS** (☑) or **PARTIAL** (◐) were observed on real hardware on
+the date shown (see the test log at the end). **Every other item is NOT
+HARDWARE TESTED.** Record your own results in the *Result* column; a ticked
+box means a real measurement or observation, not an expectation. Stop at the
+first failure.
 
 The gates follow the bring-up order of the illustrated build guide (A–H).
 Read [HARDWARE.md](../HARDWARE.md) first.
@@ -30,34 +31,34 @@ USB data cable, and a phone.
 
 | ✓ | Check | How | Pass condition | Result |
 |---|---|---|---|---|
-| ☐ | Port appears | `scripts/setup-macos.sh --check` | `/dev/cu.usbmodem…` with `303A:1001` | NOT HARDWARE TESTED |
-| ☐ | Upload | `scripts/flash.sh` | "Upload finished", no errors | NOT HARDWARE TESTED |
-| ☐ | Boot report | `scripts/monitor.sh` | Banner printed, reset reason `power-on` or `usb` | NOT HARDWARE TESTED |
+| ☑ | Port appears | `scripts/setup-macos.sh --check` | `/dev/cu.usbmodem…` with `303A:1001` | PASS 2026-10-22: `/dev/cu.usbmodem1101`, `303A:1001`, chip ESP32-C3 (QFN32) rev v0.4, 4 MB embedded flash |
+| ☑ | Upload | `scripts/flash.sh` | "Upload finished", no errors | PASS 2026-10-22: commit f7f6bcd, all 4 regions "Hash of data verified"; a second upload was confirmed with `esptool verify-flash` (digest matched) |
+| ☑ | Boot report | `scripts/monitor.sh` | Banner printed, reset reason `power-on` or `usb` | PASS 2026-10-22: `status` reply complete, reset `usb`, 80 MHz, NVS ok, 170 KB heap free. The banner is cut off if no monitor is open at boot (by design: output is never blocking) |
 | ☐ | Stable 3V3 | Meter on 3V3 during boot and Wi-Fi | 3.2–3.4 V, no resets | NOT HARDWARE TESTED |
 
 ## Gate D: display, I²C, button and Wi-Fi on USB power
 
 | ✓ | Check | How | Pass condition | Result |
 |---|---|---|---|---|
-| ☐ | SSD1306 detected at 0x3C | `status` in the serial console | `i2c … lines idled HIGH … devices: 0x3C`; `oled detected at 0x3C` | NOT HARDWARE TESTED |
-| ☐ | Watchdog stays quiet | Use the clip normally for 30 min, then check *Last reset* | No `task-watchdog` or `interrupt-watchdog` resets | NOT HARDWARE TESTED |
+| ☐ | SSD1306 detected at 0x3C | `status` in the serial console | `i2c … lines idled HIGH … devices: 0x3C`; `oled detected at 0x3C` | NOT HARDWARE TESTED (screen not soldered yet). Without the screen, `status` correctly reports lines LOW and no devices, including after a software restart |
+| ◐ | Watchdog stays quiet | Use the clip normally for 30 min, then check *Last reset* | No `task-watchdog` or `interrupt-watchdog` resets | PARTIAL 2026-10-22: no watchdog resets during about 15 min of testing (only the intended `usb` and `software` resets) |
 | ☐ | Correct GPIO mapping | Same line | `SDA=GPIO5 SCL=GPIO6`; the display works with this wiring | NOT HARDWARE TESTED |
 | ☐ | Display initialization | Look at the panel | "Hello!" centered, crisp, not shifted or mirrored; Wi-Fi icon top-right | NOT HARDWARE TESTED |
 | ☐ | Fonts and diacritics | Save `Ăă Ââ Îî Șș Țț` in each font size | Every accent and comma visible | NOT HARDWARE TESTED |
 | ☐ | Scrolling | Save a 60-character message | Smooth scroll, pause at the start, no tearing | NOT HARDWARE TESTED |
 | ☐ | Two lines | Small font + Two lines + `Bună dimineața, Ștefan și Țărani` | Two centered lines, nothing clipped | NOT HARDWARE TESTED |
 | ☐ | Brightness / rotate / invert | Change each on the page | Visible change; rotation keeps text upright when the clip is flipped | NOT HARDWARE TESTED |
-| ☐ | Wi-Fi AP visible | Phone Wi-Fi list | "Hairclip" listed within 10 s of boot | NOT HARDWARE TESTED |
-| ☐ | Mobile browser connection | iPhone and Android: join, open http://192.168.4.1 | Page loads, status "Connected", preview matches the panel | NOT HARDWARE TESTED |
-| ☐ | Message saves | Type, Save | Toast "Saved"; the panel updates within 1 s | NOT HARDWARE TESTED |
-| ☐ | Persists after reboot | Press RESET, then unplug and replug USB | The same message and settings return | NOT HARDWARE TESTED |
-| ☐ | BOOT turns Wi-Fi off | Hold BOOT 1.5 s with Wi-Fi on | "Wi-Fi OFF" toast, icon gone, network disappears | NOT HARDWARE TESTED |
-| ☐ | BOOT turns Wi-Fi on | Hold BOOT 1.5 s with Wi-Fi off | "Wi-Fi ON 192.168.4.1" toast, network back | NOT HARDWARE TESTED |
-| ☐ | One toggle per hold | Hold BOOT for 5 s | Exactly one toggle | NOT HARDWARE TESTED |
+| ☑ | Wi-Fi AP visible | Phone Wi-Fi list | "Hairclip" listed within 10 s of boot | PASS 2026-10-22 (board only, USB power): seen by a Mac Wi-Fi scan on channel 1, WPA2-Personal |
+| ◐ | Mobile browser connection | iPhone and Android: join, open http://192.168.4.1 | Page loads, status "Connected", preview matches the panel | PARTIAL 2026-10-22: one phone joined, loaded the page and saved (device showed 1 client); second platform and panel comparison not done yet |
+| ◐ | Message saves | Type, Save | Toast "Saved"; the panel updates within 1 s | PARTIAL 2026-10-22: "Saved" shown, and the device's `status` showed the new message and font=small; panel not fitted yet |
+| ◐ | Persists after reboot | Press RESET, then unplug and replug USB | The same message and settings return | PARTIAL 2026-10-22: message and font survived a software restart and a firmware update; RESET button and USB unplug not tried yet |
+| ☑ | BOOT turns Wi-Fi off | Hold BOOT 1.5 s with Wi-Fi on | "Wi-Fi OFF" toast, icon gone, network disappears | PASS 2026-10-22: `[wifi] access point off`, status off, driver memory released (toast/icon need the panel) |
+| ☑ | BOOT turns Wi-Fi on | Hold BOOT 1.5 s with Wi-Fi off | "Wi-Fi ON 192.168.4.1" toast, network back | PASS 2026-10-22: `[wifi] access point "Hairclip" up`, network visible again in a Wi-Fi scan (toast needs the panel) |
+| ☑ | One toggle per hold | Hold BOOT for 5 s | Exactly one toggle | PASS 2026-10-22: a 4–5 s hold switched Wi-Fi on once and left it on |
 | ☐ | Short press ignored | Tap BOOT | Nothing changes | NOT HARDWARE TESTED |
 | ☐ | Download mode still works | Hold BOOT, tap RESET, release | Board enumerates in download mode; flashing works | NOT HARDWARE TESTED |
-| ☐ | Automatic AP shutdown | Leave the clip alone for 3 min with no page open | Network gone after about 180 s; message still shown | NOT HARDWARE TESTED |
-| ☐ | Activity extends Wi-Fi | Type on the page now and then for 5 min | Wi-Fi stays on; countdown resets | NOT HARDWARE TESTED |
+| ☑ | Automatic AP shutdown | Leave the clip alone for 3 min with no page open | Network gone after about 180 s; message still shown | PASS 2026-10-22: on at 179 s uptime, off by 191 s (180 s + 3 s grace); network gone from a Wi-Fi scan; free heap rose ~40 KB as the driver stopped |
+| ◐ | Activity extends Wi-Fi | Type on the page now and then for 5 min | Wi-Fi stays on; countdown resets | PARTIAL 2026-10-22: using the page reset the countdown to 177 s; the 5-minute run not done yet |
 | ☐ | Page "Wi-Fi off" button | Tap it, confirm | Notice shown, network drops after about 3 s | NOT HARDWARE TESTED |
 | ☐ | Animation during requests | Save repeatedly while text scrolls | Scrolling continues without long freezes | NOT HARDWARE TESTED |
 
@@ -102,3 +103,25 @@ the B+/B− terminals, with the switch ON and **no USB connected**.
 | ☐ | Controls reachable | Try BOOT, RESET and the switch | All operable | NOT HARDWARE TESTED |
 | ☐ | Wi-Fi range | Phone at 1 m and 3 m | Page usable | NOT HARDWARE TESTED |
 | ☐ | Heat | 30 min with Wi-Fi on, then 30 min off | No hot spots on the side touching the head | NOT HARDWARE TESTED |
+
+## Test log
+
+### 2026-10-22: board only, USB power, no screen, no battery
+
+* Board: ESP32-C3 (QFN32) revision v0.4, 4 MB embedded flash (XMC), native
+  USB-Serial/JTAG at `/dev/cu.usbmodem1101`.
+* Firmware: commit f7f6bcd, then the I²C line-check fix (see below).
+* Passed: port detection, upload (hash verified), boot report, 80 MHz clock,
+  NVS, Wi-Fi AP on air (channel 1, WPA2), 3-minute auto-off, BOOT on and off,
+  one toggle per hold, a phone saving a message, the message and font
+  surviving a restart and a firmware update.
+* Found and fixed: with nothing on GPIO5/6, the first version of the I²C
+  line check could report "lines idled HIGH" after a software restart,
+  because a floating line kept its charge. It now drains the lines with the
+  internal pull-down before reading. Re-tested: LOW after a flash and after a
+  restart.
+* Note: a macOS Wi-Fi scan sometimes returns only part of the networks; repeat
+  the scan before concluding that the access point is missing.
+* Not tested yet: everything needing the OLED, the 3V3 rail measurement,
+  the physical RESET button, short BOOT presses, the page's Wi-Fi-off button,
+  and gates E–H (battery, charging, enclosure).
