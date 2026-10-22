@@ -64,7 +64,8 @@ browser approximation.*
 * The display animates in its own task, so it keeps moving while the web
   server works.
 * Watchdogs restart the chip if the main loop or the display task ever hangs.
-* A serial console provides diagnostics: `status`, `wifi on`, `wifi off`,
+* A serial console over USB provides diagnostics and control: `status`,
+  `msg <text>`, `set <field> <value>`, `wifi on`, `wifi off`, `restart`,
   `factory-reset`.
 
 ## 1. Hardware parts
@@ -214,6 +215,21 @@ scripts/monitor.sh
 ```
 
 If the OLED stays dark, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md#blank-oled).
+
+The console can also change the display without Wi-Fi, with the same rules as
+the web page (useful while testing):
+
+```
+msg Bună ziua!
+set font small
+set lines 2
+set brightness 100
+```
+
+`set` accepts the web API field names and values (`font`, `align`,
+`brightness`, `scroll`, `speed`, `rotation`, `invert`, `lines`); see
+[docs/API.md](docs/API.md#post-apisettings). `status` begins with the firmware
+version and the git commit it was built from.
 
 ## 8. Join the Wi-Fi from iPhone or Android
 

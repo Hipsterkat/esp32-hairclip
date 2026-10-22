@@ -119,7 +119,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.close_connection = True
                 return
             left = max(0, int(IDLE_S - (time.time() - d.activity)))
-            self.send_json(200, {"ok": True, "firmware": "1.0.0 (dev server mock)", "built": "mock",
+            self.send_json(200, {"ok": True, "firmware": "1.0.0 (dev server mock)", "build": "mock",
                                  "uptimeS": int(time.time() - d.started), "resetReason": "power-on", "brownouts": 0,
                                  "wifi": {"state": d.wifi_state(), "ssid": "Hairclip", "ip": "192.168.4.1", "clients": 1,
                                           "idleTimeoutS": IDLE_S, "autoOffInS": left,

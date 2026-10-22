@@ -10,6 +10,16 @@
 
 #define HAIRCLIP_FIRMWARE_VERSION "1.0.0"
 
+// Build identifier: scripts/build.sh passes the git commit (with "-dirty" if
+// hairclip/ has uncommitted changes) as -DHAIRCLIP_BUILD_ID=<id>. Builds made
+// another way (e.g. the Arduino IDE) report "unknown".
+#ifndef HAIRCLIP_BUILD_ID
+#define HAIRCLIP_BUILD_ID unknown
+#endif
+#define HAIRCLIP_STRINGIFY2(x) #x
+#define HAIRCLIP_STRINGIFY(x) HAIRCLIP_STRINGIFY2(x)
+#define HAIRCLIP_BUILD HAIRCLIP_STRINGIFY(HAIRCLIP_BUILD_ID)
+
 // ---------------------------------------------------------------------------
 // Pins: ESP32-C3 SuperMini Plus wiring from the build schematic.
 //

@@ -37,7 +37,7 @@ Not counted as activity.
 {
   "ok": true,
   "firmware": "1.0.0",
-  "built": "Oct 22 2026 21:07:13",
+  "build": "bfc5999",
   "uptimeS": 412,
   "resetReason": "power-on",
   "brownouts": 0,
@@ -50,6 +50,8 @@ Not counted as activity.
 }
 ```
 
+* `build` is the git commit the firmware was built from (`-dirty` if the
+  sketch had uncommitted changes; `unknown` outside `scripts/build.sh`).
 * `wifi.state` is `on`, `stopping` (inside the 3 s grace period) or `off`.
 * `resetReason` is one of `power-on`, `external`, `software`, `panic`,
   `interrupt-watchdog`, `task-watchdog`, `watchdog`, `deep-sleep`, `brownout`,

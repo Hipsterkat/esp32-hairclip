@@ -41,6 +41,12 @@ tests or tools. All files ending in `.cpp`/`.ino` in `hairclip/` are compiled.
 warns if different ones are installed. The CI workflow installs the same
 versions.
 
+`scripts/build.sh` passes the git commit as `HAIRCLIP_BUILD_ID` (with `-dirty`
+when `hairclip/` has uncommitted changes) through
+`compiler.cpp.extra_flags`. `status` and `/api/status` report it, so every
+hardware test result can name the exact firmware. Builds from the Arduino IDE
+report `unknown`.
+
 ## Pure modules and tests
 
 `text`, `settings`, `layout`, `button`, `wifi_policy`, `json_writer` and the

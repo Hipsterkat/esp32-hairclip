@@ -39,10 +39,18 @@ python3 "$ROOT/tools/generate_assets.py" --check \
   || die "Regenerate with: python3 tools/generate_assets.py   (then rebuild)"
 
 heading "Compiling"
+# Firmware build ID shown by `status` and /api/status: the git commit, marked
+# -dirty when the sketch folder has uncommitted changes.
+BUILD_ID="$(git -C "$ROOT" rev-parse --short=7 HEAD 2>/dev/null || echo unknown)"
+if [[ "$BUILD_ID" != "unknown" && -n "$(git -C "$ROOT" status --porcelain -- hairclip 2>/dev/null)" ]]; then
+  BUILD_ID="${BUILD_ID}-dirty"
+fi
 info "FQBN: $FQBN"
+info "Build ID: $BUILD_ID"
 mkdir -p "$BUILD_DIR"
 LOG="$ROOT/build/compile.log"
-if ! arduino-cli compile --fqbn "$FQBN" --warnings all --output-dir "$BUILD_DIR" "$SKETCH_DIR" >"$LOG" 2>&1; then
+if ! arduino-cli compile --fqbn "$FQBN" --warnings all --output-dir "$BUILD_DIR" \
+    --build-property "compiler.cpp.extra_flags=-DHAIRCLIP_BUILD_ID=$BUILD_ID" "$SKETCH_DIR" >"$LOG" 2>&1; then
   tail -40 "$LOG" >&2
   echo >&2
   warn "Build failed. Full log: $LOG"

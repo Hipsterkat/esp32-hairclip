@@ -17,6 +17,7 @@
 #include "display.h"
 #include "settings.h"
 #include "storage.h"
+#include "text.h"
 #include "web_ui.h"
 #include "wifi_manager.h"
 
@@ -78,12 +79,19 @@ static const char* apStateLabel(ApState s) {
 // Wi-Fi password.
 // ---------------------------------------------------------------------------
 
+static void printDisplaySettings() {
+  const DisplaySettings& ds = g_state.display;
+  Serial.printf("display    font=%s align=%s brightness=%u%% scroll=%u speed=%u rotation=%u invert=%u lines=%u\n",
+                settings::fontName(ds.font), settings::alignName(ds.align), ds.brightness, ds.scroll, ds.speed,
+                ds.rotate180 ? 180 : 0, ds.invert, ds.twoLines ? 2 : 1);
+}
+
 static void printStatus() {
   const uint32_t now = millis();
   const display::Info d = display::info();
   uint8_t found[16];
   const size_t n = display::busScan(found, sizeof(found));
-  Serial.printf("firmware   %s (built %s %s)\n", HAIRCLIP_FIRMWARE_VERSION, __DATE__, __TIME__);
+  Serial.printf("firmware   %s (build %s)\n", HAIRCLIP_FIRMWARE_VERSION, HAIRCLIP_BUILD);
   Serial.printf("chip       %s rev %u, %lu MHz, reset: %s, brownouts: %u\n", ESP.getChipModel(),
                 ESP.getChipRevision(), static_cast<unsigned long>(getCpuFrequencyMhz()),
                 g_state.resetReason, g_state.brownouts);
@@ -101,20 +109,74 @@ static void printStatus() {
                 wifi::clientCount(), static_cast<unsigned long>(wifi::autoOffInMs(now) / 1000));
   Serial.printf("boot btn   GPIO%u %s\n", PIN_BOOT_BUTTON, digitalRead(PIN_BOOT_BUTTON) == LOW ? "pressed" : "released");
   Serial.printf("message    \"%s\"\n", g_state.message);
-  const DisplaySettings& ds = g_state.display;
-  Serial.printf("display    font=%s align=%s brightness=%u%% scroll=%u speed=%u rotation=%u invert=%u lines=%u\n",
-                settings::fontName(ds.font), settings::alignName(ds.align), ds.brightness, ds.scroll, ds.speed,
-                ds.rotate180 ? 180 : 0, ds.invert, ds.twoLines ? 2 : 1);
+  printDisplaySettings();
 }
 
 static void printHelp() {
-  Serial.println("commands: status | wifi on | wifi off | restart | factory-reset | help");
+  Serial.println("commands: status | msg <text> | set <field> <value> | wifi on | wifi off | restart |");
+  Serial.println("          factory-reset | help    (set fields: font align brightness scroll speed rotation invert lines)");
+}
+
+// msg <text>: show and save a message, with the same rules as the web page.
+static void consoleMessage(const char* input) {
+  static char norm[MESSAGE_MAX_BYTES + 1];
+  const text::NormalizeResult r =
+      text::normalizeMessage(input, strlen(input), norm, sizeof(norm), MESSAGE_MAX_CHARS, MESSAGE_MAX_BYTES);
+  if (r.status != text::NormalizeStatus::Ok) {
+    Serial.println(r.status == text::NormalizeStatus::TooLong
+                       ? "error: message too long (max 120 characters, 256 bytes)"
+                       : "error: message is not valid UTF-8");
+    return;
+  }
+  bool saved = true;
+  if (strcmp(norm, g_state.message) != 0) {
+    saved = g_store.saveMessage(norm);
+    memcpy(g_state.message, norm, r.bytes + 1);
+    display::setContent(g_state.message, g_state.display);
+  }
+  Serial.printf("message    \"%s\"%s\n", g_state.message, saved ? "" : "  (NOT saved to flash)");
+}
+
+// set <field> <value>: change and save one display setting (web API names).
+static void consoleSet(const char* args) {
+  const char* space = strchr(args, ' ');
+  char field[16];
+  if (space == nullptr || static_cast<size_t>(space - args) >= sizeof(field)) {
+    Serial.println("usage: set <font|align|brightness|scroll|speed|rotation|invert|lines> <value>");
+    return;
+  }
+  memcpy(field, args, static_cast<size_t>(space - args));
+  field[space - args] = '\0';
+  if (!settings::isKnownField(field)) {
+    Serial.printf("error: unknown setting '%s'\n", field);
+    return;
+  }
+  DisplaySettings next = g_state.display;
+  if (const char* err = settings::applyField(&next, field, space + 1)) {
+    Serial.printf("error: %s\n", err);
+    return;
+  }
+  g_state.display = next;
+  display::setContent(g_state.message, g_state.display);
+  bool saved = true;
+  if (g_state.storedDisplay != g_state.display) {
+    saved = g_store.saveDisplay(g_state.storedDisplay, g_state.display);
+    if (saved) g_state.storedDisplay = g_state.display;
+  }
+  printDisplaySettings();
+  if (!saved) Serial.println("(NOT saved to flash)");
 }
 
 static void runCommand(const char* cmd) {
   const uint32_t now = millis();
   if (strcmp(cmd, "status") == 0) {
     printStatus();
+  } else if (strncmp(cmd, "msg ", 4) == 0) {
+    consoleMessage(cmd + 4);
+  } else if (strcmp(cmd, "msg") == 0) {
+    consoleMessage("");
+  } else if (strncmp(cmd, "set ", 4) == 0) {
+    consoleSet(cmd + 4);
   } else if (strcmp(cmd, "wifi on") == 0) {
     wifi::turnOn(now);
   } else if (strcmp(cmd, "wifi off") == 0) {
@@ -134,18 +196,24 @@ static void runCommand(const char* cmd) {
 }
 
 static void pollConsole() {
-  static char line[48];
+  static char line[MESSAGE_MAX_BYTES + 16];  // room for "msg " plus a full message
   static size_t len = 0;
+  static bool overflow = false;
   while (Serial.available() > 0) {
     const int c = Serial.read();
     if (c == '\r' || c == '\n') {
-      if (len > 0) {
+      if (overflow) {
+        Serial.println("error: line too long");
+      } else if (len > 0) {
         line[len] = '\0';
         runCommand(line);
-        len = 0;
       }
+      len = 0;
+      overflow = false;
     } else if (len < sizeof(line) - 1) {
       line[len++] = static_cast<char>(c);
+    } else {
+      overflow = true;  // never cut a line (it could split a UTF-8 character)
     }
   }
 }

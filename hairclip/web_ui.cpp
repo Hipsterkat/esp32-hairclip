@@ -177,7 +177,7 @@ void handleStatus() {
   j.beginObject()
       .boolean("ok", true)
       .str("firmware", HAIRCLIP_FIRMWARE_VERSION)
-      .str("built", __DATE__ " " __TIME__)
+      .str("build", HAIRCLIP_BUILD)
       .unum("uptimeS", static_cast<uint32_t>(esp_timer_get_time() / 1000000))
       .str("resetReason", g_state->resetReason)
       .unum("brownouts", g_state->brownouts);
